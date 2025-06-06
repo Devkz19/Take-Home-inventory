@@ -18,6 +18,10 @@ import {
 } from "../../../redux/features/product/productSlice";
 import { Link } from "react-router-dom";
 
+// 🧩 New Imports for Excel Export
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 const ProductList = ({ products, isLoading }) => {
   const [search, setSearch] = useState("");
   const filteredProducts = useSelector(selectFilteredPoducts);
@@ -33,7 +37,6 @@ const ProductList = ({ products, isLoading }) => {
   };
 
   const delProduct = async (id) => {
-    console.log(id);
     await dispatch(deleteProduct(id));
     await dispatch(getProducts());
   };
@@ -49,13 +52,12 @@ const ProductList = ({ products, isLoading }) => {
         },
         {
           label: "Cancel",
-          // onClick: () => alert('Click No')
         },
       ],
     });
   };
 
-  //   Begin Pagination
+  // Pagination
   const [currentItems, setCurrentItems] = useState([]);
   const [pageCount, setPageCount] = useState(0);
   const [itemOffset, setItemOffset] = useState(0);
@@ -63,7 +65,6 @@ const ProductList = ({ products, isLoading }) => {
 
   useEffect(() => {
     const endOffset = itemOffset + itemsPerPage;
-
     setCurrentItems(filteredProducts.slice(itemOffset, endOffset));
     setPageCount(Math.ceil(filteredProducts.length / itemsPerPage));
   }, [itemOffset, itemsPerPage, filteredProducts]);
@@ -72,11 +73,36 @@ const ProductList = ({ products, isLoading }) => {
     const newOffset = (event.selected * itemsPerPage) % filteredProducts.length;
     setItemOffset(newOffset);
   };
-  //   End Pagination
 
   useEffect(() => {
     dispatch(FILTER_PRODUCTS({ products, search }));
   }, [products, search, dispatch]);
+
+  // Excel Export Function
+  const exportToExcel = () => {
+    if (filteredProducts.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+
+    // Create data array with headers and rows
+    const exportData = filteredProducts.map((product, index) => ({
+      "S/N": index + 1,
+      Name: product.name,
+      Category: product.category,
+      Price: product.price,
+      Quantity: product.quantity,
+      Value: product.price * product.quantity,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(data, "inventory.xlsx");
+  };
 
   return (
     <div className="product-list">
@@ -92,6 +118,13 @@ const ProductList = ({ products, isLoading }) => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </span>
+        </div>
+
+        {/* ✅ Export Button */}
+        <div style={{ margin: "10px 0" }}>
+          <button onClick={exportToExcel} className="--btn --btn-primary">
+            Download Excel
+          </button>
         </div>
 
         {isLoading && <SpinnerImg />}
@@ -121,15 +154,9 @@ const ProductList = ({ products, isLoading }) => {
                       <td>{index + 1}</td>
                       <td>{shortenText(name, 16)}</td>
                       <td>{category}</td>
-                      <td>
-                        {"₹"}
-                        {price}
-                      </td>
+                      <td>₹{price}</td>
                       <td>{quantity}</td>
-                      <td>
-                        {"₹"}
-                        {price * quantity}
-                      </td>
+                      <td>₹{price * quantity}</td>
                       <td className="icons">
                         <span>
                           <Link to={`/product-detail/${_id}`}>

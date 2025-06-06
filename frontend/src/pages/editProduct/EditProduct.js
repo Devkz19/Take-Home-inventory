@@ -23,6 +23,7 @@ const EditProduct = () => {
   const [productImage, setProductImage] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     dispatch(getProduct(id));
@@ -42,6 +43,14 @@ const EditProduct = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Restrict non-numeric input for price and quantity
+    if ((name === "price" || name === "quantity") && !/^\d*$/.test(value)) {
+      setError(`${name.charAt(0).toUpperCase() + name.slice(1)} must be a number`);
+      return;
+    }
+
+    setError("");
     setProduct({ ...product, [name]: value });
   };
 
@@ -52,13 +61,21 @@ const EditProduct = () => {
 
   const saveProduct = async (e) => {
     e.preventDefault();
+
+    const { price, quantity } = product;
+
+    if (!price || !quantity || isNaN(price) || isNaN(quantity)) {
+      setError("Please enter valid numeric values for Price and Quantity.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("name", product?.name);
-
     formData.append("category", product?.category);
     formData.append("quantity", product?.quantity);
     formData.append("price", product?.price);
     formData.append("description", description);
+
     if (productImage) {
       formData.append("image", productImage);
     }
@@ -74,6 +91,7 @@ const EditProduct = () => {
     <div>
       {isLoading && <Loader />}
       <h3 className="--mt">Edit Product</h3>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <ProductForm
         product={product}
         productImage={productImage}

@@ -22,6 +22,7 @@ const AddProduct = () => {
   const [productImage, setProductImage] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
 
   const isLoading = useSelector(selectIsLoading);
 
@@ -29,6 +30,14 @@ const AddProduct = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Restrict non-numeric input for price and quantity
+    if ((name === "price" || name === "quantity") && !/^\d*$/.test(value)) {
+      setError(`${name.charAt(0).toUpperCase() + name.slice(1)} must be a number`);
+      return;
+    }
+
+    setError("");
     setProduct({ ...product, [name]: value });
   };
 
@@ -46,6 +55,13 @@ const AddProduct = () => {
 
   const saveProduct = async (e) => {
     e.preventDefault();
+
+    // Final check before submit
+    if (!price || !quantity || isNaN(price) || isNaN(quantity)) {
+      setError("Please enter valid numeric values for Price and Quantity.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("sku", generateKSKU(category));
@@ -58,7 +74,6 @@ const AddProduct = () => {
     console.log(...formData);
 
     await dispatch(createProduct(formData));
-
     navigate("/dashboard");
   };
 
@@ -66,6 +81,7 @@ const AddProduct = () => {
     <div>
       {isLoading && <Loader />}
       <h3 className="--mt">Add New Product</h3>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       <ProductForm
         product={product}
         productImage={productImage}
