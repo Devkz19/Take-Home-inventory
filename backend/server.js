@@ -3,51 +3,71 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+
+// Routes
 const userRoute = require("./routes/userRoute");
 const productRoute = require("./routes/productRoute");
 const contactRoute = require("./routes/contactRoute");
 const errorHandler = require("./middleWare/errorMiddleware");
-const cookieParser = require("cookie-parser");
-const path = require("path");
 
 const app = express();
 
-
-// Middlewares
+// ---------------------
+// Middleware
+// ---------------------
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(
-   cors({
-     origin: "http://localhost:3000", // React frontend running locally
-     credentials: true, // Allows cookies and authentication headers
-   })
- );
- app.use("/uploads", express.static("uploads"));
- 
 
+// ✅ CORS Configuration
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // for local dev
+      "https://take-home-inventory.netlify.app" // ✅ for deployed frontend
+    ],
+    credentials: true,
+  })
+);
+
+// ✅ Serve static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes Middleware
+// ---------------------
+// Routes
+// ---------------------
 app.use("/api/users", userRoute);
 app.use("/api/products", productRoute);
 app.use("/api/contactus", contactRoute);
 
-// Routes
+// ✅ Simple test route (optional)
+app.get("/api/test", (req, res) => {
+  res.json({ message: "Backend is working ✅" });
+});
+
+// ✅ Default home route
 app.get("/", (req, res) => {
   res.send("Home Page");
 });
 
-// Error Middleware
+// ---------------------
+// Error Handling Middleware
+// ---------------------
 app.use(errorHandler);
-// Connect to DB and start server
+
+// ---------------------
+// Connect to MongoDB and Start Server
+// ---------------------
 const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server Running on port ${PORT}`);
+      console.log(`✅ Server Running on port ${PORT}`);
     });
   })
-  .catch((err) => console.log(err));
+  .catch((err) => console.log("❌ DB Connection Error:", err));
